@@ -1,2 +1,2 @@
 # myto
-Hardware wallet for Mycelium nodes.
+Wallet for Mycelium nodes.
