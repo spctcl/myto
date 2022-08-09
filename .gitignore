@@ -72,4 +72,7 @@ buck-out/
 web-build/
 dist/
 
+# dotenv
+.env
+
 # @end expo-cli
