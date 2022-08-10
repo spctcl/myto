@@ -1,4 +1,6 @@
 import { ethers } from 'ethers';
+import { BarCodeScanner } from 'expo-barcode-scanner';
+import { Permissions } from 'expo-barcode-scanner';
 import { StatusBar } from 'expo-status-bar';
 import React, { useState, useEffect } from 'react';
 import { Button, StyleSheet, Text, View } from 'react-native';
@@ -9,6 +11,9 @@ const private_key = process.env.PRIVATE_KEY;
 // Instantiate a wallet.
 const wallet = new ethers.Wallet(private_key);
 console.log('wallet address: ', wallet.address, '\n');
+
+// Instantiate JSON RPC provider.
+const provider = new ethers.providers.InfuraProvider("kovan", process.env.INFURA_KOVAN_ENDPOINT);
 
 const owner = process.env.OWNER_ADDRESS;
 
@@ -31,7 +36,21 @@ console.log("unsignedTx: ", unsignedTx);
 export default function App() {
   const [code, setCode] = useState("none");
 
-  async function generateCode() {
+  // Camera permissions.
+  const [showScanner, setShowScanner] = useState(false);
+  const [hasPermission, setHasPermission] = useState(null);
+  const [scanned, setScanned] = useState(false);
+
+  useEffect(() => {
+    const getBarCodeScannerPermissions = async () => {
+      const { status } = await BarCodeScanner.requestPermissionsAsync();
+      setHasPermission(status === 'granted');
+    };
+    
+    getBarCodeScannerPermissions();  
+  }, []);
+ 
+  const generateCode = async () => {
     // Sign transaction.
     const signedTx = await wallet.signTransaction(unsignedTx);
     console.log("signedTx: ", signedTx);
@@ -39,18 +58,42 @@ export default function App() {
     // Generate QR code from signed transaction.
     // setCode(signedTx);
     setCode(signedTx);
+  };
+
+  const scanQRCode = () => {
+    console.log("showScanner: ", setShowScanner);
+    setShowScanner(true);
   }
   
-  async function relayTx() {
-    
+  const relayTx = () => {
+  }
+
+  const handleBarCodeScanned = ({ type, data }) => {
+    setScanned(true);
+    alert(`Bar code with type ${type} and data ${data} has been scanned!`);
+  };
+
+  if (hasPermission === null) {
+    return <Text>Requesting for camera permission</Text>;
+  }
+
+  if (hasPermission === false) {
+    return <Text>No access to camera</Text>;
   }
 
   return (
     <View style={styles.container}>
       <Text>myto</Text>
-      <Button title="Generate Pairing Code" onClick={generateCode()}/>
-      <Button title="Receive Pairing Code" onClick={relayTx()}/>
+      <Button title="Generate Pairing Code" onPress={generateCode}/>
+      <Button title="Scan Pairing Code" onPress={scanQRCode}/>
       <SvgQRCode value={code}/>
+  
+      { showScanner ? <BarCodeScanner
+        onBarCodeScanned={scanned ? undefined : handleBarCodeScanned}
+        style={StyleSheet.absoluteFillObject}
+        /> : null }
+        {showScanner && <Button title={'Cancel Scan'} onPress={() => setShowScanner(false)} />}
+        {scanned && <Button title={'Tap to Scan Again'} onPress={() => setScanned(false)} />}
       <StatusBar style="auto" />
     </View>
   );
