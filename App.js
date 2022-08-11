@@ -37,7 +37,7 @@ const unsignedTx = {
 console.log("unsignedTx: ", unsignedTx);
 
 export default function App() {
-  const [code, setCode] = useState("none");
+  const [code, setCode] = useState("no_code");
 
   // Camera permissions.
   const [showScanner, setShowScanner] = useState(false);
@@ -69,14 +69,16 @@ export default function App() {
   
   const relayTx = async () => {
     // Hardcoded transaction for testing relay without QR code/camera workflow.
-    const signedTxHex = '0xf85803847f9acf02839896808088016345785d8a00008077a0e63324ad48ee7a61828d0bb04baf378d5dbfd6ee9e6816d71966b422bcd4d3dca03032b2ab9b5bcab0028af4112748154fa5c4aa7af87e999ee7749c651f068f40';
-    console.log(signedTxHex);
-    await provider.sendTransaction(signedTxHex);
+    console.log("code/signedTxHex: ", code);
+    await provider.sendTransaction(code);
   }
 
   const handleBarCodeScanned = ({ type, data }) => {
     setScanned(true);
     alert(`Bar code with type ${type} and data ${data} has been scanned!`);
+    setCode(data)
+    console.log("handleBarCodeScanned code: ", data);
+    relayTx()
   };
 
   if (hasPermission === null) {
@@ -91,7 +93,7 @@ export default function App() {
     <View style={styles.container}>
       <Text>myto</Text>
       <Button title="Generate Pairing Code" onPress={generateCode}/>
-      <Button title="Scan Pairing Code" onPress={scanQRCode}/>
+      <Button title="Pair Device" onPress={scanQRCode}/>
       <Button title="Relay TX" onPress={relayTx}/>
       <SvgQRCode value={code}/>
   
