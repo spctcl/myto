@@ -22,9 +22,6 @@ console.log("wallet provider: ", wallet.provider);
 const pairingContract = new ethers.Contract(process.env.PAIRING_CONTRACT_ADDRESS, pairingABI, wallet);
 console.log("pairingContract: ", pairingContract);
 
-const contract = {address: process.env.PAIRING_CONTRACT_ADDRESS}
-// const contract = new ethers.Contract(address, abi, wallet); // TODO: The contract ABI must be supplied.
-
 export default function App() {
   const [code, setCode] = useState("no_code");
 
@@ -88,8 +85,8 @@ export default function App() {
 
   const handleBarCodeScanned = ({ type, data }) => {
     setScanned(true);
-    alert(`Bar code with type ${type} and data ${data} has been scanned!`);
     setCode(data)
+    alert(`Attempting to Pair Device with Signed Transaction: ${data}`);
     console.log("handleBarCodeScanned code: ", data);
     relayTx()
   };
@@ -107,7 +104,7 @@ export default function App() {
       <Text>myto</Text>
       <Button title="Generate Pairing Code" onPress={generateCode}/>
       <Button title="Pair Device" onPress={scanQRCode}/>
-      <Button title="Relay TX" onPress={relayTx}/>
+      {/* <Button title="Relay TX" onPress={relayTx}/> */}
       <SvgQRCode value={code}/>
   
       { showScanner ? <BarCodeScanner
