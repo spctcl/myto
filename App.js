@@ -10,7 +10,7 @@ const private_key = process.env.PRIVATE_KEY;
 
 // RPC Provider.
 const provider = new ethers.providers.InfuraProvider("kovan", process.env.INFURA_KOVAN_ENDPOINT);
-const owner = process.env.OWNER_ADDRESS;
+const deviceAddress = process.env.DEVICE_ACCOUNT_ADDRESS;
 
 // Wallet
 let wallet = new ethers.Wallet(private_key);
@@ -21,20 +21,9 @@ console.log("wallet provider: ", wallet.provider);
 // Device pairing contract.
 const pairingContract = new ethers.Contract(process.env.PAIRING_CONTRACT_ADDRESS, pairingABI, wallet);
 console.log("pairingContract: ", pairingContract);
-const address = process.env.PAIRING_CONTRACT_ADDRESS;
+
 const contract = {address: process.env.PAIRING_CONTRACT_ADDRESS}
 // const contract = new ethers.Contract(address, abi, wallet); // TODO: The contract ABI must be supplied.
-
-// Transaction to be signed.
-const unsignedTx = {
-  to: contract.address,
-  value: ethers.utils.parseEther('0.1'),
-  gasLimit: 10000000,
-  gasPrice: "0x07f9acf02",
-  nonce: 1,
-  chainId: 42,
-}
-console.log("unsignedTx: ", unsignedTx);
 
 export default function App() {
   const [code, setCode] = useState("no_code");
@@ -53,18 +42,42 @@ export default function App() {
     getBarCodeScannerPermissions();  
   }, []);
  
-  const generateCode = async () => {
+  const generateCode = async ({}) => {
+    const unsignedTx = createUnsignedTx();
     // Sign transaction.
     const signedTx = await wallet.signTransaction(unsignedTx);
     console.log("signedTx: ", signedTx);
   
     // Generate QR code from signed transaction.
-    // setCode(signedTx);
     setCode(signedTx);
   };
 
   const scanQRCode = () => {
     setShowScanner(true);
+  }
+
+  // TODO: Embed signed message from device in transaction from user.
+  // Use that to prove device identity.
+  const createUnsignedTx = async () => {
+     const to = process.env.PAIRING_CONTRACT_ADDRESS;
+     const from = process.env.DEVICE_ACCOUNT_ADDRESS;
+     const txCount= await provider.getTransactionCount(from);
+     const nonce = ethers.utils.hexlify(txCount);
+     const gasLimit = ethers.utils.hexlify(10000000);
+     const gasPrice = ethers.utils.hexlify(1100000000);
+     const chainId = 42;
+     const data = pairingContract.interface.getFunction("pairDevice")
+     const unsignedTx = new Transaction({
+      to: to,
+      nonce: nonce,
+      gasLimit: gasLimit,
+      gasPrice: gasPrice,
+      data: data,
+      chainId: chainId
+     })
+     console.log("unsignedTx: ", unsignedTx);
+
+    return unsignedTx;
   }
   
   const relayTx = async () => {
