@@ -1,34 +1,37 @@
 import { ethers } from 'ethers';
 import { BarCodeScanner } from 'expo-barcode-scanner';
-import { Permissions } from 'expo-barcode-scanner';
 import { StatusBar } from 'expo-status-bar';
+import pairingABI from './DevicePairing.json' assert { type: 'json' };
 import React, { useState, useEffect } from 'react';
 import { Button, StyleSheet, Text, View } from 'react-native';
 import SvgQRCode from 'react-native-qrcode-svg';
 
 const private_key = process.env.PRIVATE_KEY;
 
-// Instantiate a wallet.
-const wallet = new ethers.Wallet(private_key);
-console.log('wallet address: ', wallet.address, '\n');
-
-// Instantiate JSON RPC provider.
+// RPC Provider.
 const provider = new ethers.providers.InfuraProvider("kovan", process.env.INFURA_KOVAN_ENDPOINT);
-
 const owner = process.env.OWNER_ADDRESS;
 
-// Instantiate the contract for device pairing.
-const address = process.env.PAIRING_CONTRACT;
-const contract = {address: process.env.CONTRACT_ADDRESS}
+// Wallet
+let wallet = new ethers.Wallet(private_key);
+console.log('wallet.address: ', wallet.address, '\n');
+wallet = wallet.connect(provider);
+console.log("wallet provider: ", wallet.provider);
+
+// Device pairing contract.
+const pairingContract = new ethers.Contract(process.env.PAIRING_CONTRACT_ADDRESS, pairingABI, wallet);
+console.log("pairingContract: ", pairingContract);
+const address = process.env.PAIRING_CONTRACT_ADDRESS;
+const contract = {address: process.env.PAIRING_CONTRACT_ADDRESS}
 // const contract = new ethers.Contract(address, abi, wallet); // TODO: The contract ABI must be supplied.
 
-// Create the transaction to be signed.
+// Transaction to be signed.
 const unsignedTx = {
   to: contract.address,
   value: ethers.utils.parseEther('0.1'),
   gasLimit: 10000000,
   gasPrice: "0x07f9acf02",
-  nonce: 3,
+  nonce: 1,
   chainId: 42,
 }
 console.log("unsignedTx: ", unsignedTx);
@@ -61,11 +64,14 @@ export default function App() {
   };
 
   const scanQRCode = () => {
-    console.log("showScanner: ", setShowScanner);
     setShowScanner(true);
   }
   
-  const relayTx = () => {
+  const relayTx = async () => {
+    // Hardcoded transaction for testing relay without QR code/camera workflow.
+    const signedTxHex = '0xf85803847f9acf02839896808088016345785d8a00008077a0e63324ad48ee7a61828d0bb04baf378d5dbfd6ee9e6816d71966b422bcd4d3dca03032b2ab9b5bcab0028af4112748154fa5c4aa7af87e999ee7749c651f068f40';
+    console.log(signedTxHex);
+    await provider.sendTransaction(signedTxHex);
   }
 
   const handleBarCodeScanned = ({ type, data }) => {
@@ -86,6 +92,7 @@ export default function App() {
       <Text>myto</Text>
       <Button title="Generate Pairing Code" onPress={generateCode}/>
       <Button title="Scan Pairing Code" onPress={scanQRCode}/>
+      <Button title="Relay TX" onPress={relayTx}/>
       <SvgQRCode value={code}/>
   
       { showScanner ? <BarCodeScanner
